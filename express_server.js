@@ -36,6 +36,16 @@ const newUser = function(obj, id, email, password) {
   obj[id] = {"id": id, 'email': email, 'password': password};
 };
 
+const checkEmail = (emailToCheck, databaseObj) => {
+  let bool = false;
+  for (elem in databaseObj){
+    if (databaseObj[elem].email === emailToCheck){
+      bool = true
+    }
+  }
+    return bool;
+};
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -114,17 +124,22 @@ app.post("/login", (req, res) => {
 });
 
 app.post ("/register", (req, res) => {
-  const id = generateRandomString();
-  const email = req.body.email;
-  const password = req.body.password;
-  newUser(users, id, email, password);
-  res.cookie('userID', id);
-  console.log(users);
-  res.redirect("/urls");
+  if (checkEmail(req.body.email, users) !== true){
+    const id = generateRandomString();
+    const email = req.body.email;
+    const password = req.body.password;
+    newUser(users, id, email, password);
+    res.cookie('userID', id);
+    console.log(users);
+    res.redirect("/urls");
+  } else {
+    res.statusCode = 400;
+    res.send("Your email is registered already. Please proceed to the login page");
+  }
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('name');
+  res.clearCookie('userID');
   res.redirect('/urls');
 });
 
