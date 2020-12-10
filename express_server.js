@@ -15,8 +15,8 @@ const generateRandomString = function() {
 };
 
 const urlDatabase = {
-  "b2xVn2": { longURL: "http://www.lighthouselabs.ca", userID: "aJ48lW" },
-  "9sm5xK": { longURL: "http://www.google.com", userID: "test" }
+  "b2xVn2": { longURL: "http://www.lighthouselabs.ca", userID: "userRandomID" },
+  "9sm5xK": { longURL: "http://www.google.com", userID: "user2RandomID" }
 };
 
 const users = { 
@@ -30,18 +30,7 @@ const users = {
     email: "user2@example.com", 
     password: "dishwasher-funk"
   }
-};
-
-//function which create a new obj with URL which belong only to certain userID
-const urlsForUser = (id, urlDatabase) => {
-  const ObjUserID = {};
-  for (shortURL in urlDatabase) {
-    if (urlDatabase[shortURL].userID === id) {
-      ObjUserID[shortURL] = urlDatabase[shortURL]
-    }
-  }
-  return ObjUserID;
-};
+}
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -84,19 +73,18 @@ app.get("/urls/:shortURL", (req, res) => {
 // Functionality for creating a new url
 app.post("/urls/", (req, res) => {
   let shortURL = generateRandomString();
-  console.log(req.body);  // Log the POST request body to the console
-  urlDatabase[shortURL] = req.body.longURL;
+  let longURL = req.body.longURL;
+  urlDatabase[shortURL] = {'longURL': longURL, "userID": req.cookies["userID"] };
   res.redirect('/url/');
-  //res.redirect(urlDatabase[shortURL]);
-  //res.send("Ok");         // Respond with 'Ok' (we will replace this)
 });
+
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   if (!Object.prototype.hasOwnProperty.call(urlDatabase,shortURL)) {
     res.status(404);
     res.send("404 NOT FOUND");
   } else {
-    const longURL = urlDatabase[shortURL];
+    const longURL = urlDatabase[shortURL]['longURL'];
     res.redirect(longURL);
   }
 });
@@ -122,7 +110,13 @@ app.post("/login", (req, res) => {
   res.redirect('/urls');
 });
 
+//show the login page
+app.get("/login", (req, res) => {
+  const templateVars = { user: users[req.cookies["userID"]]};
+  res.render("urls_login", templateVars);
+});
 
+// Show the registration page with the form
 app.post("/register", (req, res) => {
   const id = "user" + generateRandomString();
   const email = req.body.email;
@@ -131,7 +125,7 @@ app.post("/register", (req, res) => {
     res.status(404);
     res.send("404 NOT FOUND");
   } else {**/
-  users[id] = {"id": id, 'email': email, 'password': password};
+  const users = {"id": id, 'email': email, 'password': password};
   res.cookie('userID', id);
   res.redirect('/urls');
   //}
