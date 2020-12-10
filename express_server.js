@@ -15,8 +15,32 @@ const generateRandomString = function() {
 };
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  "b2xVn2": { longURL: "http://www.lighthouselabs.ca", userID: "aJ48lW" },
+  "9sm5xK": { longURL: "http://www.google.com", userID: "test" }
+};
+
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
+  }
+};
+
+//function which create a new obj with URL which belong only to certain userID
+const urlsForUser = (id, urlDatabase) => {
+  const ObjUserID = {};
+  for (shortURL in urlDatabase) {
+    if (urlDatabase[shortURL].userID === id) {
+      ObjUserID[shortURL] = urlDatabase[shortURL]
+    }
+  }
+  return ObjUserID;
 };
 
 app.get("/", (req, res) => {
@@ -31,9 +55,17 @@ app.get("/hello", (req, res) => {
 
 // Getting all urls 
 app.get("/urls", (req, res) => {
-  const templateVars = { username: req.cookies["name"], urls: urlDatabase };
+  const templateVars = {user: users[req.cookies['userID']], urls: urlDatabase };
   //const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
+});
+
+// Functionality for displaying a registration form
+app.get("/register", (req, res) => {
+  const templateVars = { user: users[req.cookies['userID']]};
+  //const username = req.body.username;
+  //const templateVars = { email: req.body.email, password: req.body.password };
+  res.render("urls_register", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
@@ -57,7 +89,6 @@ app.post("/urls/", (req, res) => {
   res.redirect('/url/');
   //res.redirect(urlDatabase[shortURL]);
   //res.send("Ok");         // Respond with 'Ok' (we will replace this)
-
 });
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
@@ -91,11 +122,20 @@ app.post("/login", (req, res) => {
   res.redirect('/urls');
 });
 
-app.get("/register", (req, res) => {
-  //const templateVars = { user: users[req.cookies['userID']]};
-  //const username = req.body.username;
-  const templateVars = { email: req.body.email, password: req.body.password, shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
-  res.render("urls_register");
+
+app.post("/register", (req, res) => {
+  const id = "user" + generateRandomString();
+  const email = req.body.email;
+  const password = req.body.password;
+  /**if(email === "" || password === ""){
+    res.status(404);
+    res.send("404 NOT FOUND");
+  } else {**/
+  users[id] = {"id": id, 'email': email, 'password': password};
+  res.cookie('userID', id);
+  res.redirect('/urls');
+  //}
+  console.log(users);
 });
 
 app.post("/logout", (req, res) => {
