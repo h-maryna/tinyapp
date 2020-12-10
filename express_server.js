@@ -23,7 +23,7 @@ const users = {
   "userRandomID": {
     id: "userRandomID", 
     email: "user@example.com", 
-    password: "purple-monkey-dinosaur"
+    password: "test"
   },
  "user2RandomID": {
     id: "user2RandomID", 
@@ -36,15 +36,25 @@ const newUser = function(obj, id, email, password) {
   obj[id] = {"id": id, 'email': email, 'password': password};
 };
 
-const checkEmail = (emailToCheck, databaseObj) => {
-  let bool = false;
-  for (elem in databaseObj){
-    if (databaseObj[elem].email === emailToCheck){
-      bool = true
+//function to check if an email already exists in users
+const checkEmail = function(obj, email) {
+  const keys = Object.keys(obj);
+  for (let k of keys) {
+    if (obj[k]['email'] === email) {
+      return true;
     }
   }
-    return bool;
+  return false;
 };
+
+const getID = (email, databaseObj) => {
+  for(let id in databaseObj){
+    if(databaseObj[id].email === email) {
+      return id;
+    }
+  }
+  return false;
+  };
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -96,9 +106,16 @@ app.get("/u/:shortURL", (req, res) => {
   }
 });
 
+// Functionality to be able to see the register form
 app.get("/register", (req, res) => {
   const templateVars = { user: users[req.cookies["userID"]] };
   res.render("urls_register", templateVars);
+});
+
+// Functionality to be able to see the login 
+app.get ("/login", (req, res) => {
+  const templateVars = {user: users[req.cookies["userID"]] };
+  res.render("urls_login", templateVars);
 });
 
 // Functionality for deleting urls
@@ -118,24 +135,34 @@ app.post("/urls/:shortURL/Update", (req, res) => {
 
 // Functionality for creating cookies
 app.post("/login", (req, res) => {
-  const username = req.body.username;
-  res.cookie('name', username);
-  res.redirect('/urls');
+  const id = generateRandomString();
+  const email = req.body.email;
+  const password = req.body.password;
+  /**if (!email ||!password) {
+    res.status(403);
+    res.send("<h3>Email does not exist or incorrect password</h3>");
+  } else {**/
+    user = users[id];
+    res.cookie('userID', id);
+    res.redirect("/urls");
+  //}
 });
 
+// Functionality for getting results from registration page
 app.post ("/register", (req, res) => {
-  if (checkEmail(req.body.email, users) !== true){
-    const id = generateRandomString();
-    const email = req.body.email;
-    const password = req.body.password;
+  const id = generateRandomString();
+  const email = req.body.email;
+  const password = req.body.password;
+  if (email === "" || password === "" || checkEmail(users, email)) {
+    res.status(404),
+    res.send("<h3>Hmm, seems you've alrady registered. Please proceed to the login page.</h3>");
+  } else {
     newUser(users, id, email, password);
     res.cookie('userID', id);
     console.log(users);
     res.redirect("/urls");
-  } else {
-    res.statusCode = 400;
-    res.send("Your email is registered already. Please proceed to the login page");
-  }
+  } 
+  console.log(users);
 });
 
 app.post("/logout", (req, res) => {
