@@ -15,8 +15,8 @@ const generateRandomString = function() {
 };
 
 const urlDatabase = {
-  "b2xVn2": { longURL: "http://www.lighthouselabs.ca", userID: "userRandomID" },
-  "9sm5xK": { longURL: "http://www.google.com", userID: "user2RandomID" }
+  "b2xVn2": "http://www.lighthouselabs.ca",
+  "9sm5xK": "http://www.google.com"
 };
 
 const users = { 
@@ -30,7 +30,11 @@ const users = {
     email: "user2@example.com", 
     password: "dishwasher-funk"
   }
-}
+};
+
+const newUser = function(obj, id, email, password) {
+  obj[id] = {"id": id, 'email': email, 'password': password};
+};
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -44,27 +48,18 @@ app.get("/hello", (req, res) => {
 
 // Getting all urls 
 app.get("/urls", (req, res) => {
-  const templateVars = {user: users[req.cookies['userID']], urls: urlDatabase };
+  const templateVars = { user: users[req.cookies["userID"]], urls: urlDatabase };
   //const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
 
-// Functionality for displaying a registration form
-app.get("/register", (req, res) => {
-  const templateVars = { user: users[req.cookies['userID']]};
-  //const username = req.body.username;
-  //const templateVars = { email: req.body.email, password: req.body.password };
-  res.render("urls_register", templateVars);
-});
-
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["name"], urls : urlDatabase };
+  const templateVars = { user: users[req.cookies["userID"]], urls : urlDatabase };
   //const templateVars = { urls: urlDatabase };
   res.render("urls_new", templateVars);
 });
-
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { username: req.cookies["name"], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  const templateVars = { user: users[req.cookies["userID"]], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
   //const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
   res.render("urls_show", templateVars);
 });
@@ -73,25 +68,33 @@ app.get("/urls/:shortURL", (req, res) => {
 // Functionality for creating a new url
 app.post("/urls/", (req, res) => {
   let shortURL = generateRandomString();
-  let longURL = req.body.longURL;
-  urlDatabase[shortURL] = {'longURL': longURL, "userID": req.cookies["userID"] };
+  console.log(req.body);  // Log the POST request body to the console
+  urlDatabase[shortURL] = req.body.longURL;
   res.redirect('/url/');
-});
+  //res.redirect(urlDatabase[shortURL]);
+  //res.send("Ok");         // Respond with 'Ok' (we will replace this)
 
+});
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   if (!Object.prototype.hasOwnProperty.call(urlDatabase,shortURL)) {
     res.status(404);
     res.send("404 NOT FOUND");
   } else {
-    const longURL = urlDatabase[shortURL]['longURL'];
+    const longURL = urlDatabase[shortURL];
     res.redirect(longURL);
   }
+});
+
+app.get("/register", (req, res) => {
+  const templateVars = { user: users[req.cookies["userID"]] };
+  res.render("urls_register", templateVars);
 });
 
 // Functionality for deleting urls
 app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
+  console.log(shortURL, "We see it!");
   delete urlDatabase[shortURL];
   res.redirect('/urls');
 });
@@ -100,7 +103,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.post("/urls/:shortURL/Update", (req, res) => {
   const shortURL = req.params.shortURL;
   urlDatabase[shortURL] = req.body.longURL;
-  res.redirect('/urls');
+  res.redirect('/urls/');
 });
 
 // Functionality for creating cookies
@@ -110,26 +113,14 @@ app.post("/login", (req, res) => {
   res.redirect('/urls');
 });
 
-//show the login page
-app.get("/login", (req, res) => {
-  const templateVars = { user: users[req.cookies["userID"]]};
-  res.render("urls_login", templateVars);
-});
-
-// Show the registration page with the form
-app.post("/register", (req, res) => {
-  const id = "user" + generateRandomString();
+app.post ("/register", (req, res) => {
+  const id = generateRandomString();
   const email = req.body.email;
   const password = req.body.password;
-  /**if(email === "" || password === ""){
-    res.status(404);
-    res.send("404 NOT FOUND");
-  } else {**/
-  const users = {"id": id, 'email': email, 'password': password};
+  newUser(users, id, email, password);
   res.cookie('userID', id);
-  res.redirect('/urls');
-  //}
   console.log(users);
+  res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
