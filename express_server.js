@@ -3,6 +3,7 @@ const express = require("express");
 const cookieParser = require('cookie-parser')
 const app = express();
 const bodyParser = require("body-parser");
+const bcrypt = require('bcrypt');
 
 
 app.use(bodyParser.urlencoded({extended: true}));
@@ -23,12 +24,12 @@ const users = {
   "sesji5": {
     id: "sesji5", 
     email: "user@example.com", 
-    password: "test"
+    password: bcrypt.hashSync("test", 10)
   },
  "sotsx4": {
     id: "sotsx4", 
     email: "user2@example.com", 
-    password: "hello"
+    password: bcrypt.hashSync("test", 10)
   }
 };
 
@@ -57,14 +58,15 @@ const getID = (email, databaseObj) => {
   };
 
 //function which create a new obj with URL which belong only to certain userID
-const urlsForUser = (id, urlDatabase) => {
-  const ObjUserID = {};
-  for (shortURL in urlDatabase) {
-    if (urlDatabase[shortURL].userID === id) {
-      ObjUserID[shortURL] = urlDatabase[shortURL]
+//function that returns the URLs of a user by his id
+const urlsForUser = function(urlObj, id) {
+  const res = [];
+  for (let url in urlObj) {
+    if (urlObj[url]['userID'] === id) {
+      res.push(url);
     }
   }
-  return ObjUserID;
+  return res;
 };
 
 app.get("/", (req, res) => {
@@ -97,13 +99,12 @@ app.get("/urls/new", (req, res) => {
 
 app.get("/urls/:shortURL", (req, res) => {
   const templateVars = { user: users[req.cookies["userID"]], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]["longURL"] };
-  //const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
   res.render("urls_show", templateVars);
 });
 
 
 // Functionality for creating a new url
-app.post("/urls/", (req, res) => {
+app.post("/urls", (req, res) => {
   let shortURL = generateRandomString();
   console.log(req.body);  // Log the POST request body to the console
   urlDatabase[shortURL] = req.body.longURL;
@@ -150,12 +151,18 @@ app.post("/urls/:shortURL/Update", (req, res) => {
   res.redirect('/urls/');
 });
 
+app.post("/logout", (req, res) => {
+  res.clearCookie('userID');
+  res.redirect('/urls');
+});
+
+
 // Functionality for creating cookies
 app.post("/login", (req, res) => {
   //let user = null;
   //const id = generateRandomString();
   const email = req.body.email;
-  const password = req.body.password;
+  const password = bcrypt.hashSync(req.body.password, 10);
   const userID = getID(email, users);
   const user = users[userID];
   console.log(user);
@@ -174,7 +181,7 @@ app.post("/login", (req, res) => {
 app.post ("/register", (req, res) => {
   const id = generateRandomString();
   const email = req.body.email;
-  const password = req.body.password;
+  const password = bcrypt.hashSync(req.body.password, 10);
   if (email === "" || password === "" || checkEmail(users, email)) {
     res.status(404),
     res.send("<h3>Hmm, seems you've alrady registered. Please proceed to the login page.</h3>");
@@ -185,11 +192,6 @@ app.post ("/register", (req, res) => {
     res.redirect("/urls");
   } 
   console.log(users);
-});
-
-app.post("/logout", (req, res) => {
-  res.clearCookie('userID');
-  res.redirect('/urls');
 });
 
 
