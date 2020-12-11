@@ -1,3 +1,4 @@
+const { generateRandomString, checkEmail, newUser, getID } = require("./helpers.js");
 const PORT = 8080; // default port 8080
 const express = require("express");
 const cookieParser = require('cookie-parser')
@@ -11,9 +12,6 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
-const generateRandomString = function() {
-  return Math.random().toString(36).substr(2, 6);
-};
 
 const urlDatabase = {
   "b2xVn2":  { longURL: "http://www.lighthouselabs.ca", userID: "sesji5" },
@@ -29,33 +27,10 @@ const users = {
  "sotsx4": {
     id: "sotsx4", 
     email: "user2@example.com", 
-    password: bcrypt.hashSync("test", 10)
+    password: bcrypt.hashSync("123", 10)
   }
 };
 
-const newUser = function(obj, id, email, password) {
-  obj[id] = {"id": id, 'email': email, 'password': password};
-};
-
-//function to check if an email already exists in users
-const checkEmail = function(obj, email) {
-  const keys = Object.keys(obj);
-  for (let k of keys) {
-    if (obj[k]['email'] === email) {
-      return true;
-    }
-  }
-  return false;
-};
-
-const getID = (email, databaseObj) => {
-  for(let id in databaseObj){
-    if(databaseObj[id].email === email) {
-      return id;
-    }
-  }
-  return false;
-  };
 
 //function which create a new obj with URL which belong only to certain userID
 //function that returns the URLs of a user by his id
