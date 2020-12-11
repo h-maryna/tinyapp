@@ -27,7 +27,7 @@ const users = {
  "sotsx4": {
     id: "sotsx4", 
     email: "user2@example.com", 
-    password: bcrypt.hashSync("123", 10)
+    password: bcrypt.hashSync("test", 10)
   }
 };
 
@@ -122,7 +122,8 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 // Functionality for updating urls
 app.post("/urls/:shortURL/Update", (req, res) => {
   const shortURL = req.params.shortURL;
-  urlDatabase[shortURL] = req.body.longURL;
+  const longURL = req.body.longURL;
+  urlDatabase[shortURL].longURL = longURL;
   res.redirect('/urls/');
 });
 
@@ -134,22 +135,20 @@ app.post("/logout", (req, res) => {
 
 // Functionality for creating cookies
 app.post("/login", (req, res) => {
-  //let user = null;
-  //const id = generateRandomString();
   const email = req.body.email;
   const password = bcrypt.hashSync(req.body.password, 10);
   const userID = getID(email, users);
   const user = users[userID];
   console.log(user);
   console.log(email, userID);
-  if (user.email !== req.body.email || user.password !== req.body.password) {
+  /**if (user.email !== req.body.email || user.password !== req.body.password) {
     res.status(403);
     res.send("<h3>Email does not exist or incorrect password</h3>");
   } else {
-    console.log(user);
+    **/console.log(user);
     res.cookie('userID', userID);
     res.redirect("/urls");
-  }
+  //}
 });
 
 // Functionality for getting results from registration page
