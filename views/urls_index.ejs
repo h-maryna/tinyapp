@@ -14,7 +14,7 @@
   
   <main style="margin: 1em;">
     <h3>My URLs</h3>
-    <%if (user) {%>
+    <%if (username) {%>
     <table class="table">
       <thead>
         <tr>
@@ -28,13 +28,12 @@
         <% for(let url in urls) { %>
           <tr>
             <td><%= url %></td>
-            <td><%= urls[url].longURL %></td>
+            <td><a href="<%=urls[url].longURL%>"><%= urls[url].longURL %></a></td>
             <td>
-              <form method="get" action="/urls/<%= url %>">
-                <button type="submit" class="btn btn-outline-primary">Edit</button></form>
+              <a href="/u/<%=url%>/update" class="btn btn-primary">Edit</a>
               </td>
             <td>
-              <form method="post" action="/urls/<%= url %>/delete">
+              <form method="post" action="/u/<%= url%>/delete">
                 <button type="submit" class="btn btn-outline-danger">Delete</button></form>
               </td>
           </tr>

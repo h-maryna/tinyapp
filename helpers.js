@@ -14,10 +14,6 @@ const checkEmail = function(obj, email) {
   return false;
 };
 
-const newUser = function(obj, id, email, password) {
-  obj[id] = {"id": id, 'email': email, 'password': password};
-};
-
 
 const getID = (email, databaseObj) => {
   for(let id in databaseObj){
@@ -29,4 +25,5 @@ const getID = (email, databaseObj) => {
 };
 
 
-module.exports = { generateRandomString, checkEmail, newUser, getID }; 
+
+module.exports = { generateRandomString, checkEmail, getID }; 

@@ -1,174 +1,190 @@
-const { generateRandomString, checkEmail, newUser, getID } = require("./helpers.js");
-const PORT = 8080; // default port 8080
 const express = require("express");
-const cookieParser = require('cookie-parser')
-const app = express();
 const bodyParser = require("body-parser");
+const cookieSession = require("cookie-session");
+const app = express();
+const PORT = 8080;
+const { checkEmail, getID, generateRandomString } = require('./helpers');
 const bcrypt = require('bcrypt');
 
-
-app.use(bodyParser.urlencoded({extended: true}));
-
+app.use(cookieSession({
+  name: 'session',
+  keys: ["user_id"]
+}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
 
+
+//obj with shortnames for testing purpose
 const urlDatabase = {
-  "b2xVn2":  { longURL: "http://www.lighthouselabs.ca", userID: "sesji5" },
-  "9sm5xK": { longURL: "http://www.google.com", userID: "sotsx4" }
+  "b2xVn2": { longURL: "http://www.lighthouselabs.ca", userID: "aJ48lW" },
+  "9sm5xK": { longURL: "http://www.google.com", userID: "test" }
 };
 
-const users = { 
-  "sesji5": {
-    id: "sesji5", 
-    email: "user@example.com", 
-    password: bcrypt.hashSync("test", 10)
+//obj with user id, names and emails for testing purpose
+const users = {
+  "userRandomID": {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: bcrypt.hashSync("123", 10)
   },
- "sotsx4": {
-    id: "sotsx4", 
-    email: "user2@example.com", 
-    password: bcrypt.hashSync("test", 10)
+  "test": {
+    id: "test",
+    email: "test1@t.ca",
+    password: bcrypt.hashSync("123", 10)
   }
 };
-
 
 //function which create a new obj with URL which belong only to certain userID
-//function that returns the URLs of a user by his id
-const urlsForUser = function(urlObj, id) {
-  const res = [];
-  for (let url in urlObj) {
-    if (urlObj[url]['userID'] === id) {
-      res.push(url);
+const urlsForUser = (id, urlDatabase) => {
+  const ObjUserID = {};
+  for (shortURL in urlDatabase) {
+    if (urlDatabase[shortURL].userID === id) {
+      ObjUserID[shortURL] = urlDatabase[shortURL]
     }
   }
-  return res;
+  return ObjUserID;
 };
-
-app.get("/", (req, res) => {
-  res.send("Hello!");
-});
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
+//starter page
+app.get("/", (req,res) => {
+  res.redirect("/u")
 });
 
-// Getting all urls 
-app.get("/urls", (req, res) => {
-  const templateVars = { user: users[req.cookies["userID"]], urls: urlDatabase };
-  //const templateVars = { urls: urlDatabase };
-  res.render("urls_index", templateVars);
-});
-
-app.get("/urls/new", (req, res) => {
-  if (!req.cookies["userID"]) {
-    res.redirect("/login")
+//index page
+app.get("/u", (req, res) => {
+  let cookiesID = req.session.user_id;
+  if (cookiesID !== undefined) {
+    const userURLs = urlsForUser(cookiesID, urlDatabase);
+    let templateVars = { urls: userURLs, username: users[req.session.user_id] };
+    res.render("urls_index", templateVars);
   } else {
-    const templateVars = { user: users[req.cookies["userID"]], urls : urlDatabase };
-  //const templateVars = { urls: urlDatabase };
-  res.render("urls_new", templateVars);
-  } 
+    res.redirect("/login")
+  }
 });
 
-
-app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { user: users[req.cookies["userID"]], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]["longURL"] };
-  res.render("urls_show", templateVars);
+//creating userID and short link
+app.post("/u", (req, res) => {
+  let cookiesID = req.session.user_id;
+  if (cookiesID === undefined) {
+    res.render("urls_login", { username: req.session.user_id })
+  } else {
+    const shortURL = generateRandomString();
+    const userURLs = urlsForUser(cookiesID, urlDatabase);
+    const longURL = req.body.longURL;
+    urlDatabase[shortURL] = { longURL, userID: req.session.user_id };
+    userURLs[shortURL] = urlDatabase[shortURL];
+    res.redirect(`/u/`);
+  }
 });
 
-
-// Functionality for creating a new url
-app.post("/urls", (req, res) => {
-  let shortURL = generateRandomString();
-  console.log(req.body);  // Log the POST request body to the console
-  urlDatabase[shortURL] = req.body.longURL;
-  res.redirect('/urls');
-  //res.redirect(urlDatabase[shortURL]);
-  //res.send("Ok");         // Respond with 'Ok' (we will replace this)
-
+//creatin new short url
+app.get("/u/new", (req, res) => {
+  let cookiesID = req.session.user_id;
+  if (cookiesID !== undefined) {
+    let templateVars = { username: users[req.session.user_id] };
+    res.render("urls_new", templateVars);
+  } else {
+    res.redirect("/login");
+  }
 });
+
+//redirection to initial site longURL
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
-  if (!Object.prototype.hasOwnProperty.call(urlDatabase,shortURL)) {
-    res.status(404);
-    res.send("404 NOT FOUND");
+  const longURL = urlDatabase[shortURL].longURL;
+  if (!longURL) {
+    res.statusCode = 404;
+    res.send(" Sorry, code 404, Page Not Found");
   } else {
-    const longURL = urlDatabase[shortURL]["longURL"];
     res.redirect(longURL);
   }
 });
 
-// Functionality to be able to see the register form
-app.get("/register", (req, res) => {
-  const templateVars = { user: users[req.cookies["userID"]] };
-  res.render("urls_register", templateVars);
+//redirection to edit page
+app.get("/u/:shortURL/update/", (req, res) => {
+  let cookiesID = req.session.user_id;
+  if (cookiesID !== undefined) {
+    const shortURL = req.params.shortURL;
+    const longURL = urlDatabase[shortURL].longURL;
+    const templateVars = { longURL, shortURL, username: users[req.session.user_id] };
+    res.render("urls_show", templateVars);
+  } else {
+    res.redirect("/login");
+  }
 });
 
-// Functionality to be able to see the login 
-app.get ("/login", (req, res) => {
-  const templateVars = {user: users[req.cookies["userID"]] };
-  res.render("urls_login", templateVars);
-});
-
-// Functionality for deleting urls
-app.post("/urls/:shortURL/delete", (req, res) => {
-  const shortURL = req.params.shortURL;
-  console.log(shortURL, "We see it!");
-  delete urlDatabase[shortURL];
-  res.redirect('/urls');
-});
-
-// Functionality for updating urls
-app.post("/urls/:shortURL/Update", (req, res) => {
+//adding edit option on urls_show.ejs
+app.post("/u/:shortURL/update", (req, res) => {
+  let cookiesID = req.session.user_id;
   const shortURL = req.params.shortURL;
   const longURL = req.body.longURL;
-  urlDatabase[shortURL].longURL = longURL;
-  res.redirect('/urls/');
+  const userURLs = urlsForUser(cookiesID, urlDatabase);
+  userURLs[shortURL].longURL = longURL;
+  res.redirect(`/u/`)
 });
 
+// adding delete  to the urls_index
+app.post("/u/:shortURL/delete", (req, res) => {
+  let cookiesID = req.session.user_id;
+  if (cookiesID !== undefined) {
+    const del = req.params.shortURL;
+    const userURLs = urlsForUser(cookiesID, urlDatabase);
+    delete urlDatabase[del];
+    res.redirect("/u");
+  } else {
+    res.redirect("/login");
+  }
+});
+
+//adding logout feature in header
 app.post("/logout", (req, res) => {
-  res.clearCookie('userID');
-  res.redirect('/urls');
+  req.session = null;
+  res.redirect(`/u/`);
 });
 
+// adding register page
+app.get("/register", (req, res) => {
+  res.render("urls_register", { username: req.session.user_id })
+});
 
-// Functionality for creating cookies
+//adding handling registration form
+app.post("/register", (req, res) => {
+  if (checkEmail(req.body.email, users) !== true) {
+    const id = generateRandomString();
+    const email = req.body.email;
+    const password = req.body.password;
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    users[id] = { id, email, password: hashedPassword }
+    req.session.user_id = id;
+    res.redirect('/u');
+  } else {
+    res.statusCode = 400;
+    res.send(
+      "Your email is registered already. Proceed to the login page, please. Code 400"
+    );
+  }
+});
+
+//adding login functionality
+app.get("/login", (req, res) => {
+  const templateVars = { username: req.session.user_id }
+  res.render("urls_login", templateVars)
+});
+
+//adding login feature in header
 app.post("/login", (req, res) => {
   const email = req.body.email;
-  const password = bcrypt.hashSync(req.body.password, 10);
-  const userID = getID(email, users);
-  const user = users[userID];
-  console.log(user);
-  console.log(email, userID);
-  /**if (user.email !== req.body.email || user.password !== req.body.password) {
-    res.status(403);
-    res.send("<h3>Email does not exist or incorrect password</h3>");
+  const password = req.body.password;
+  if (getID(email, users) !== false && bcrypt.compareSync(password, users[getID(email, users)].password) === true) {
+    req.session.user_id = getID(email, users);
+    res.redirect('/u');
   } else {
-    **/console.log(user);
-    res.cookie('userID', userID);
-    res.redirect("/urls");
-  //}
+    res.statusCode = 403;
+    res.send(
+      "There is no such user or password has not been registered. Code 403"
+    );
+  }
 });
-
-// Functionality for getting results from registration page
-app.post ("/register", (req, res) => {
-  const id = generateRandomString();
-  const email = req.body.email;
-  const password = bcrypt.hashSync(req.body.password, 10);
-  if (email === "" || password === "" || checkEmail(users, email)) {
-    res.status(404),
-    res.send("<h3>Hmm, seems you've alrady registered. Please proceed to the login page.</h3>");
-  } else {
-    newUser(users, id, email, password);
-    res.cookie('userID', id);
-    console.log(users);
-    res.redirect("/urls");
-  } 
-  console.log(users);
-});
-
 
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
+  console.log(`Tiny app is listening on port ${PORT}!`);
 });
