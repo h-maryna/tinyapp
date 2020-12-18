@@ -3,9 +3,9 @@ TinyApp is a full stack web application was built with Node and Express that all
 
 
 ## Getting Started
-Install all dependencies using the npm install command.
-Run the development web server using the npm start command.
-Open tinyapp in a browser with localhost:8080/
+1. Install all dependencies using the npm install command.
+2. Run the development web server using the npm start command.
+3. Open tinyapp in a browser with localhost:8080/
 
 ## Screenshots
 !["Screenshot of main TinyApp page, login page"](https://github.com/h-maryna/tinyapp/blob/master/docs/login.png)<br />
@@ -16,9 +16,9 @@ Open tinyapp in a browser with localhost:8080/
 
 !["Screenshot of edit shortURL page"](https://github.com/h-maryna/tinyapp/blob/master/docs/edit.png)<br />
 ## Dependencies
-Node.js
-Express
-EJS
-bcrypt
-body-parser
-cookie-session
+- Node.js
+- Express
+- EJS
+- bcrypt
+- body-parser
+- cookie-session
