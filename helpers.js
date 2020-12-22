@@ -24,6 +24,17 @@ const getID = (email, databaseObj) => {
   return false;
 };
 
+//function which create a new obj with URL which belong only to certain userID
+const urlsForUser = (id, urlDatabase) => {
+  const ObjUserID = {};
+  for (shortURL in urlDatabase) {
+    if (urlDatabase[shortURL].userID === id) {
+      ObjUserID[shortURL] = urlDatabase[shortURL]
+    }
+  }
+  return ObjUserID;
+};
 
 
-module.exports = { generateRandomString, checkEmail, getID }; 
+
+module.exports = { generateRandomString, checkEmail, getID, urlsForUser }; 

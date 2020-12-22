@@ -3,7 +3,7 @@ const bodyParser = require("body-parser");
 const cookieSession = require("cookie-session");
 const app = express();
 const PORT = 8080;
-const { checkEmail, getID, generateRandomString } = require('./helpers');
+const { checkEmail, getID, generateRandomString, urlsForUser } = require('./helpers');
 const bcrypt = require('bcrypt');
 
 app.use(cookieSession({
@@ -34,16 +34,7 @@ const users = {
   }
 };
 
-//function which create a new obj with URL which belong only to certain userID
-const urlsForUser = (id, urlDatabase) => {
-  const ObjUserID = {};
-  for (shortURL in urlDatabase) {
-    if (urlDatabase[shortURL].userID === id) {
-      ObjUserID[shortURL] = urlDatabase[shortURL]
-    }
-  }
-  return ObjUserID;
-};
+
 //starter page
 app.get("/", (req,res) => {
   res.redirect("/u")
@@ -119,7 +110,7 @@ app.post("/u/:shortURL/update", (req, res) => {
   const longURL = req.body.longURL;
   const userURLs = urlsForUser(cookiesID, urlDatabase);
   userURLs[shortURL].longURL = longURL;
-  res.redirect(`/u/`)
+  res.redirect("/u/")
 });
 
 // adding delete  to the urls_index
@@ -135,32 +126,33 @@ app.post("/u/:shortURL/delete", (req, res) => {
   }
 });
 
-//adding logout feature in header
-app.post("/logout", (req, res) => {
-  req.session = null;
-  res.redirect(`/u/`);
-});
+
 
 // adding register page
 app.get("/register", (req, res) => {
-  res.render("urls_register", { username: req.session.user_id })
+  const templateVars = { username: req.session.user_id };
+  res.render("urls_register", templateVars);
+});
+
+//adding logout feature in header
+app.post("/logout", (req, res) => {
+  req.session = null;
+  res.redirect("/u/");
 });
 
 //adding handling registration form
 app.post("/register", (req, res) => {
-  if (checkEmail(req.body.email, users) !== true) {
-    const id = generateRandomString();
-    const email = req.body.email;
-    const password = req.body.password;
-    const hashedPassword = bcrypt.hashSync(password, 10);
+  const id = generateRandomString();
+  const email = req.body.email;
+  const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
+  if (email === "" || password === "" || checkEmail(users, email)) {
+    res.status(404);
+    res.send("Your email is registered already. Proceed to the login page, please.");
+  } else {
     users[id] = { id, email, password: hashedPassword }
     req.session.user_id = id;
-    res.redirect('/u');
-  } else {
-    res.statusCode = 400;
-    res.send(
-      "Your email is registered already. Proceed to the login page, please. Code 400"
-    );
+    res.redirect("/urls")
   }
 });
 
