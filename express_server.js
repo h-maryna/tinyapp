@@ -105,12 +105,16 @@ app.get("/u/:shortURL/update/", (req, res) => {
 
 //adding edit option on urls_show.ejs
 app.post("/u/:shortURL/update", (req, res) => {
-  let cookiesID = req.session.user_id;
+  const id = req.session.userID;
   const shortURL = req.params.shortURL;
-  const longURL = req.body.longURL;
-  const userURLs = urlsForUser(cookiesID, urlDatabase);
-  userURLs[shortURL].longURL = longURL;
-  res.redirect("/u/")
+  const URLs = urlsForUser(urlDatabase, id);
+  if (URLs.includes(shortURL)) {
+    urlDatabase[shortURL] = {longURL: req.body.longURL, userID: id};
+    res.redirect('/u/');
+  } else {
+    res.status(403);
+    res.send('<h2>You don\'t have the right to update this URL<h2>');
+  }
 });
 
 // adding delete  to the urls_index
@@ -152,7 +156,7 @@ app.post("/register", (req, res) => {
   } else {
     users[id] = { id, email, password: hashedPassword }
     req.session.user_id = id;
-    res.redirect("/urls")
+    res.redirect("/u")
   }
 });
 
@@ -166,14 +170,12 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  if (getID(email, users) !== false && bcrypt.compareSync(password, users[getID(email, users)].password) === true) {
+  if (!checkEmail(users, email) || !bcrypt.compareSync(password, users[getID(email, users)].password)) {
+    res.status(403);
+    res.send("<h2>The email does not exist in our system or there is a wrong password.</h2>");
+  } else if (users[getID(email, users)].email === req.body.email && bcrypt.compareSync(password, users[getID(email, users)].password)) {
     req.session.user_id = getID(email, users);
     res.redirect('/u');
-  } else {
-    res.statusCode = 403;
-    res.send(
-      "There is no such user or password has not been registered. Code 403"
-    );
   }
 });
 
