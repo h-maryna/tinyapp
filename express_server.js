@@ -67,11 +67,11 @@ app.post("/u", (req, res) => {
   }
 });
 
-//creatin new short url
+//creating new short url
 app.get("/u/new", (req, res) => {
   let cookiesID = req.session.user_id;
   if (cookiesID !== undefined) {
-    let templateVars = { username: users[req.session.user_id] };
+    let templateVars = { username: users[cookiesID] };
     res.render("urls_new", templateVars);
   } else {
     res.redirect("/login");
@@ -83,38 +83,34 @@ app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL].longURL;
   if (!longURL) {
-    res.statusCode = 404;
-    res.send(" Sorry, code 404, Page Not Found");
+    res.status(403);
+    res.send('<h2>You don\'t have the right to update this URL or you enetered an incorrect URL<h2>');
   } else {
     res.redirect(longURL);
   }
 });
 
 //redirection to edit page
-app.get("/u/:shortURL/update/", (req, res) => {
+app.get("/u/:shortURL/update", (req, res) => {
   let cookiesID = req.session.user_id;
   if (cookiesID !== undefined) {
     const shortURL = req.params.shortURL;
     const longURL = urlDatabase[shortURL].longURL;
-    const templateVars = { longURL, shortURL, username: users[req.session.user_id] };
+    const templateVars = { longURL, shortURL, username: users[cookiesID]};
     res.render("urls_show", templateVars);
-  } else {
+    } else {
     res.redirect("/login");
-  }
+  }   
 });
 
 //adding edit option on urls_show.ejs
 app.post("/u/:shortURL/update", (req, res) => {
-  const id = req.session.userID;
+  let cookiesID = req.session.user_id;
   const shortURL = req.params.shortURL;
-  const URLs = urlsForUser(urlDatabase, id);
-  if (URLs.includes(shortURL)) {
-    urlDatabase[shortURL] = {longURL: req.body.longURL, userID: id};
-    res.redirect('/u/');
-  } else {
-    res.status(403);
-    res.send('<h2>You don\'t have the right to update this URL<h2>');
-  }
+  const longURL = req.body.longURL;
+  const userURLs = urlsForUser(cookiesID, urlDatabase);
+  userURLs[shortURL].longURL = longURL;
+  res.redirect(`/u/`)
 });
 
 // adding delete  to the urls_index
